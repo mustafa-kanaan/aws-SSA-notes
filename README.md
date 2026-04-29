@@ -34,10 +34,10 @@
 | # | Section | Key Topics | Status |
 |---|---|---|---|
 | 01 | [IAM & VPC Fundamentals](./01-IAM-and-VPC/notes.md) | IAM users/roles/policies, VPC, Subnets, IGW, NAT, Bastion Host, Hybrid Connectivity | ✅ Done |
-| 02 | [Key Architecture Pillars](./02-Architecture-Pillars/notes.md) | Elasticity, HA, Reliability, CloudWatch, DR, Microservices | 🔄 In Progress |
-| 03 | [VPC Deep Dive](./03-VPC-Deep-Dive/notes.md) | NAT, Bastion, Peering, Transit Gateway, VPC Endpoints | ⏳ Pending |
-| 04 | [Hybrid Cloud Networking](./04-Hybrid-Networking/notes.md) | VPN, Direct Connect, Transit Gateway | ⏳ Pending |
-| 05 | [Compute — EC2 & EBS](./05-EC2-and-EBS/notes.md) | Instance types, EBS volumes, AMI, placement groups | ⏳ Pending |
+| 02 | [Key Architecture Pillars](./02-Architecture-Pillars/notes.md) | Elasticity, HA, Reliability, CloudWatch, DR, Microservices | ✅ Done |
+| 03 | [VPC Deep Dive](./03-VPC-Deep-Dive/notes.md) | NAT, Bastion, Peering, Transit Gateway, VPC Endpoints | ✅ Done |
+| 04 | [Hybrid Cloud Networking](./04-Hybrid-Networking/notes.md) | VPN, Direct Connect, Transit Gateway | ✅ Done |
+| 05 | [Compute — EC2 & EBS](./05-EC2-and-EBS/notes.md) | Instance types, EBS volumes, AMI, placement groups | 🔄 In Progress |
 | 06 | [Scaling & Load Balancing](./06-ELB-and-Auto-Scaling/notes.md) | ALB, NLB, GWLB, Auto Scaling groups, policies | ⏳ Pending |
 | 07 | [Relational Databases — RDS](./07-RDS/notes.md) | Multi-AZ, Read Replicas, Aurora, RDS Proxy, backups | ⏳ Pending |
 | 08 | [NoSQL Databases](./08-NoSQL/notes.md) | DynamoDB, ElastiCache, DocumentDB, Redshift | ⏳ Pending |

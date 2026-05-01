@@ -1,89 +1,87 @@
-# AWS SAA — Section 1: IAM & VPC Fundamentals
+# AWS SAA — PDF 1: Cloud Foundations & AWS Introduction
 
 > 📌 **Study tip:** Read each section, then close the doc and try to recall the key points. Use the "Exam Traps" boxes to review before your test.
 
 ---
 
-## 1. AWS Identity & Access Management (IAM)
+## 1. Cloud Computing Fundamentals
 
-### What is IAM?
+### What is Cloud Computing?
+Cloud computing is the **on-demand delivery** of IT resources over the internet with **pay-as-you-go pricing**.
+- A **data center** alone is NOT a cloud — it needs orchestration/automation layers to become a cloud.
 
-IAM is AWS's global identity and access control service. It answers three questions for every request made to AWS:
+### Cloud Deployment Models
 
-- **Who are you?** → Authentication
-- **What are you allowed to do?** → Authorization
-- **Under what conditions?** → Policy conditions
+| Model | Description | Best For |
+|---|---|---|
+| **Public Cloud** | Shared, multi-tenant (e.g. AWS) | Less confidential, cost-effective |
+| **Private Cloud** | Single-tenant, dedicated | Confidential data, regulatory |
+| **Hybrid Cloud** | Public + private, orchestrated | DR, backup, dev/test |
+| **Multi-Cloud** | Multiple public providers | Avoid vendor lock-in |
 
-IAM is **global** — it is not tied to any specific AWS region.
+### Cloud Service Models
+
+| Layer | SaaS | PaaS | IaaS | On-Premises |
+|---|---|---|---|---|
+| App | Provider | Provider | Customer | Customer |
+| OS | Provider | Provider | Customer | Customer |
+| Hardware | Provider | Provider | Provider | Customer |
 
 ---
+
+## 2. AWS Global Infrastructure
+
+- **30+ Regions**, **96+ AZs**, **410+ Points of Presence**
+- Each **Region** = separate geographic area with multiple AZs
+- Each **AZ** = one or more data centers with independent power, cooling, networking
+- AZs within a region are connected via **low-latency private fiber**
+
+### How to Choose a Region
+1. Data compliance & governance
+2. Latency — closest to your users
+3. Service availability — not all services in all regions
+4. Pricing — differs per region
+
+---
+
+## 3. IAM 101
 
 ### IAM Identities
 
 | Identity | Used For | Credential Type |
 |---|---|---|
-| **IAM User** | Human users (console/CLI access) | Username + password, or Access Keys |
-| **IAM Group** | Organizing users with shared permissions | N/A — inherits from attached policies |
-| **IAM Role** | AWS services, applications, federated users | Temporary credentials via STS |
-
-#### Key Distinction: User vs. Role
+| **IAM User** | Human users | Username + password or Access Keys |
+| **IAM Group** | Organize users | Inherits from policies |
+| **IAM Role** | Services, apps, federated users | Temporary via STS |
 
 ```
 IAM User  →  Permanent credentials  →  Long-term risk if leaked
-IAM Role  →  Temporary credentials (STS, auto-expire in 1–12h)  →  Safer
+IAM Role  →  Temporary credentials (STS, auto-expire 1–12h)  →  Safer
 ```
-
-**Always use roles for:**
-- EC2 instances that need access to S3, DynamoDB, etc.
-- CI/CD pipelines (CodeBuild, GitHub Actions OIDC)
-- Cross-account access
-- Federated users (company SSO/Active Directory)
-
-> ⚠️ **Never hardcode access keys** in code or on EC2 instances. If the instance is compromised, the attacker gets permanent credentials usable from anywhere in the world.
-
----
 
 ### IAM Best Practices
-
-- 🔒 Lock away root account credentials — use only for account-level tasks
+- 🔒 Lock root credentials — use only for account-level tasks
 - 🔑 Enable MFA for root and all privileged users
-- 📉 Grant **least privilege** — only the permissions needed, nothing more
-- 🔄 Use roles instead of sharing credentials between services
-- 🗑️ Remove unused credentials and rotate access keys regularly
-- 📋 Monitor activity via CloudTrail
+- 📉 Grant **least privilege**
+- 🔄 Use **roles** instead of sharing credentials
+- 🗑️ Remove unused credentials, rotate access keys
+- 📋 Monitor via **CloudTrail**
 
-#### Why Least Privilege Matters
-
-If an account with `AdministratorAccess` is compromised:
-- Attacker can delete all resources
-- Attacker can exfiltrate all data
-- Attacker can modify billing or close the account
-
-With least privilege, the blast radius is limited to only what that identity could access.
-
----
-
-### Tasks That Require Root Credentials
-
-Some actions can **only** be done by the root user:
-- Change account name, email, or root password
+### Root-Only Tasks
+- Change account name/email/root password
 - Close the AWS account
-- Change or cancel AWS Support plan
-- Register as a seller in the Reserved Instances Marketplace
+- Change/cancel AWS Support plan
+
+> ⚠️ **Never hardcode access keys** in code or EC2. Use IAM Roles.
 
 ---
 
-## 2. AWS Virtual Private Cloud (VPC)
-
-### What is a VPC?
-
-A VPC is your **isolated virtual network** inside AWS — think of it as your own private data center in the cloud. By default, VPCs are completely isolated from each other.
+## 4. VPC 101
 
 ```
-AWS Region (e.g., us-east-1)
+AWS Region
 ┌─────────────────────────────────────────────┐
 │  Your VPC  (10.0.0.0/16)                    │
-│                                             │
 │  AZ-a                    AZ-b               │
 │  ┌─────────────┐         ┌─────────────┐    │
 │  │Public Subnet│         │Public Subnet│    │
@@ -97,207 +95,271 @@ AWS Region (e.g., us-east-1)
 ```
 
 **Key rules:**
-- One VPC per region (spans all AZs in that region)
-- Main CIDR block **cannot be changed** after creation (add up to 4 secondary CIDRs)
-- Subnets **cannot overlap** and **cannot span AZs** (one subnet = one AZ)
-- Intra-VPC routing is **automatic** — all subnets can communicate by default via the implied router
+- Main CIDR **cannot be changed** after creation (add up to 4 secondary CIDRs)
+- Subnets **cannot overlap** and **cannot span AZs**
+- A subnet is public **only when BOTH** are true:
+  - VPC has an IGW attached
+  - Subnet route table has `0.0.0.0/0 → IGW`
+
+### IP Address Types
+
+| Type | Internet Routable | Released on Stop? | Cost |
+|---|---|---|---|
+| **Private IP** | ❌ No | No | Free |
+| **Public IP** | ✅ Yes | Yes | Free |
+| **Elastic IP** | ✅ Yes | No | Free if in use |
 
 ---
 
-### VPC Core Components
-
-#### Implied Router & Route Tables
-
-The implied router handles all traffic between subnets and to the outside world. You cannot access it directly — AWS manages it.
-
-Every VPC has a **main route table** by default. Rules:
-- A subnet can be associated with **only one** route table
-- One route table can serve **multiple** subnets
-- The **local route** (`10.0.0.0/16 → local`) is always present and cannot be deleted
-
-> **Why custom route tables?** If you add `0.0.0.0/0 → IGW` to the main route table, ALL subnets become public — including your database. Custom route tables let you control which subnets are public and which are private.
-
----
-
-#### Internet Gateway (IGW)
-
-The IGW is the door between your VPC and the public internet.
-
-- Fully managed, highly available, never a bottleneck
-- **Only one IGW per VPC**
-- Supports IPv4 and IPv6
-
-**A subnet is public ONLY when BOTH conditions are met:**
-
-```
-Condition 1: VPC has an IGW attached
-Condition 2: Subnet's route table has  0.0.0.0/0 → IGW
-```
-
-If either is missing, the subnet is private — even if an EC2 instance has a public IP.
-
----
-
-#### NAT Gateway
-
-Allows **private instances** to initiate outbound internet connections (e.g., OS patches, pulling Docker images) without being reachable from the internet.
-
-```
-Private EC2
-    │
-    ▼
-NAT Gateway  (lives in public subnet, has Elastic IP)
-    │
-    ▼
-IGW → Internet
-```
-
-- Managed by AWS — no maintenance needed
-- **Highly available within one AZ only**
-- For full HA: deploy **one NAT Gateway per AZ**, each with its own route table
-
-> ⚠️ **Exam trap:** One NAT Gateway in AZ-a goes down → private instances in AZ-b lose outbound internet too, because they were routing through it. Fix: one NAT GW per AZ.
-
----
-
-### IP Address Types in AWS
-
-| Type | Internet Routable | Released on Stop? | Changes on Stop? | Cost |
-|---|---|---|---|---|
-| **Private IP** | ❌ No | No | No | Free |
-| **Public IP** | ✅ Yes | Yes | Yes | Free |
-| **Elastic IP (EIP)** | ✅ Yes | No | No | Free if in use |
-
-**Elastic IP use case:** Whitelisting — give a 3rd-party service your EIP so they can whitelist it in their firewall. Your IP never changes even if the instance is replaced.
-
----
-
-### Security: Two Layers of Defense
-
-#### Security Groups vs. Network ACLs (NACLs)
+## 5. Security Groups & NACLs
 
 | Feature | Security Group | NACL |
 |---|---|---|
-| Applies at | Instance level (ENI) | Subnet level |
-| Rule types | Allow only | Allow **and** Deny |
+| Level | Instance (ENI) | Subnet |
+| Rules | Allow only | Allow & Deny |
 | State | **Stateful** | **Stateless** |
-| Rule evaluation | All rules evaluated | Processed in order (lowest number first) |
-| Scope | Only attached instances | All instances in the subnet |
-| Default | Deny all inbound, allow all outbound | Allow all (default NACL) |
+| Rule eval | All at once | Ordered (lowest # first) |
 
-#### Stateful vs Stateless — The Critical Difference
-
-**Security Group (Stateful):**
+**Stateless NACL trap:**
 ```
-Allow inbound HTTP port 80  →  Return traffic automatically allowed ✅
-No outbound rule needed for the response
+Allow inbound port 80  →  Must ALSO allow outbound 1024-65535
+Otherwise response is dropped ❌
 ```
 
-**NACL (Stateless):**
-```
-Allow inbound HTTP port 80  →  Must ALSO allow outbound 1024-65535 ✅
-Otherwise the response is dropped at the subnet boundary ❌
-```
-
-The ephemeral port range (1024–65535) is used by the **client OS**, chosen randomly. You cannot predict the exact port, so you must allow the full range in your NACL outbound rules.
-
-> ⚠️ **Most common exam trap:** Traffic works fine with security groups but breaks when NACLs are added. Answer is always the missing ephemeral port outbound rule.
+> 💡 To **block a specific IP** → use a **NACL DENY rule**. Security Groups cannot deny.
 
 ---
 
-### Accessing Private Instances
-
-#### Bastion Host (Jump Server)
-
-A Bastion Host is an EC2 instance in a **public subnet** used as the secure SSH entry point to reach private instances.
-
-```
-Your PC  →(SSH port 22)→  Bastion (public subnet)  →(SSH port 22)→  Private EC2
-```
-
-**Security group rules:**
-- Bastion inbound: allow SSH from **your IP only** (`your-ip/32`)
-- Bastion outbound: allow SSH to **private EC2's security group only**
-- Private EC2 inbound: allow SSH from **Bastion's security group ID**
-
-> 💡 Use **SSH agent forwarding** (`ssh -A`) so your private key never leaves your PC and is never stored on the Bastion.
-
-#### Three Methods to Access Private EC2
-
-| Method | How | Port 22 Needed? | Best For |
-|---|---|---|---|
-| **Bastion Host** | SSH through jump server | Yes | Traditional access |
-| **EC2 Instance Connect** | AWS console browser | Yes (internally) | Quick/one-off access |
-| **SSM Session Manager** | AWS Systems Manager | **No** | Production best practice |
-
-> ✅ **Modern best practice:** SSM Session Manager — no open ports, fully audited, works with no public IP.
-
----
-
-## 3. Hybrid Connectivity
-
-Connecting your on-premises data center to AWS.
-
-### Virtual Private Gateway (VGW)
-
-The VGW is the **AWS-side termination point** for hybrid connections. It attaches to your VPC. Like the IGW, only **one VGW per VPC** at a time.
-
----
-
-### VPN vs Direct Connect
-
-```
-On-premises                              AWS VPC
-Data Center                              
-    │                                       │
-[Customer Gateway]──VPN (internet)──[VGW]──┤
-    │                                       │
-[Customer Gateway]──DX (private fiber)─────┘
-```
+## 6. Hybrid Connectivity 101
 
 | | **VPN** | **Direct Connect (DX)** |
 |---|---|---|
-| Network path | Public internet (encrypted IPSec) | Private dedicated fiber |
+| Path | Public internet (IPSec) | Private dedicated fiber |
 | Deploy time | Hours | Weeks to months |
-| Reliability | Variable (internet-dependent) | High (dedicated line) |
 | Latency | Inconsistent | Low and consistent |
+| Encryption | ✅ Yes | ❌ No (by default) |
 | Cost | Low | High |
-| Encryption | ✅ Yes (IPSec) | ❌ No (by default) |
-| Use case | Quick setup, backup path | Production, large data transfers |
 
-> ⚠️ **Critical exam trap:** Direct Connect is **private but NOT encrypted**. If you need low latency AND encryption, run a **VPN tunnel over Direct Connect**.
+> ⚠️ DX is **private but NOT encrypted**. For encryption + low latency → **VPN tunnel over DX**.
 
 ---
 
-### Recommended Pattern: DX Primary + VPN Backup
+## 7. EC2 101
 
-```
-Normal:      On-prem ──DX (preferred)──► VGW ──► VPC
-DX failure:  On-prem ──VPN (backup)───► VGW ──► VPC  ← automatic via BGP
-```
+### Instance Type Categories
 
-BGP (Border Gateway Protocol) handles automatic failover:
-- Both connections advertise the same routes
-- DX is preferred (higher BGP priority)
-- If DX fails, BGP automatically switches to VPN
-- When DX recovers, traffic shifts back automatically
+| Category | Use Case |
+|---|---|
+| General Purpose (t3, m5) | Balanced compute/memory/networking |
+| Compute Optimized (c5) | High CPU — HPC, gaming |
+| Memory Optimized (r5) | In-memory DBs, large caches |
+| Storage Optimized (i3) | High I/O, large local datasets |
+| Accelerated (p3, g4) | ML, GPU workloads |
 
-> ✅ **Best practice for most production workloads:** DX as primary + VPN as backup. Cost-effective because the VPN is only used during DX failure.
+### Pricing Models
+
+| Model | Best For | Savings |
+|---|---|---|
+| On-Demand | Short-term, unpredictable | — |
+| Reserved (1 or 3 yr) | Steady-state workloads | Up to 72% |
+| Spot | Fault-tolerant, flexible | Up to 90% |
+| Dedicated Host | License/regulatory compliance | — |
+
+> ⚠️ Spot instances can be **interrupted** with 2-min notice.
+
+### Accessing Private EC2
+
+| Method | Port 22 Needed? | Best For |
+|---|---|---|
+| Bastion Host | Yes | Traditional |
+| EC2 Instance Connect | Yes (internally) | Quick/one-off |
+| SSM Session Manager | **No** | ✅ Production best practice |
 
 ---
 
-## Quick Reference: Exam Traps Summary
+## 8. EBS 101
+
+- **Persistent block storage** for EC2 — survives stop/start
+- **AZ-locked** — must be in same AZ as EC2
+- To move to another AZ: **snapshot → restore in new AZ**
+- Encrypted via KMS at rest
+
+### Volume Types
+
+| Type | Use Case |
+|---|---|
+| gp3/gp2 (SSD) | General purpose, boot volumes |
+| io2/io1 (SSD) | High-performance DBs |
+| st1 (HDD) | Throughput-intensive (big data, logs) |
+| sc1 (HDD) | Cold, infrequently accessed |
+
+---
+
+## 9. Encryption 101
+
+| Type | Protects | When |
+|---|---|---|
+| **At Rest** | Stored data (disk, S3, DB) | Data sitting still |
+| **In Transit** | Data over network | Data traveling (SSL/TLS) |
+
+### Symmetric vs Asymmetric
+
+| | Symmetric | Asymmetric |
+|---|---|---|
+| Keys | One shared key | Key pair (public + private) |
+| Speed | Fast | Slow |
+| Use case | Bulk data encryption | Key exchange, digital signatures |
+
+> 💡 HTTPS uses **asymmetric** to exchange a key, then **symmetric** to encrypt actual data.
+
+---
+
+## 10. KMS 101
+
+- Managed service for creating and controlling **encryption keys**
+- KMS keys **never leave KMS unencrypted**
+- All key usage logged in **CloudTrail**
+- Supports automatic **annual key rotation**
+- Integrated with S3, EBS, RDS, Secrets Manager, etc.
+
+> ⚠️ Lose access to the KMS key → **cannot decrypt data**, even as account owner.
+
+---
+
+## 11. SNS 101
+
+**Pub/Sub service** — one message, many receivers (push-based).
+
+```
+SNS TOPIC
+    │
+    ├──► 📧 Email
+    ├──► 📱 SMS
+    ├──► 🔁 SQS Queue
+    └──► ⚡ Lambda
+```
+
+- Messages are **NOT stored** — fire and forget
+- Use case: fan-out notifications to multiple systems simultaneously
+
+---
+
+## 12. SQS 101
+
+**Message queue** — one message, one receiver (poll-based).
+
+```
+Producer ──► [msg1][msg2][msg3] QUEUE ──► Consumer (polls)
+```
+
+- Messages **persist** up to 14 days
+- Consumer polls → processes → **deletes** message
+- Use case: **decouple** producer from consumer
+
+### SNS vs SQS
+
+| | SNS | SQS |
+|---|---|---|
+| Pattern | Pub/Sub (push) | Queue (poll) |
+| Receivers | Many simultaneously | One at a time |
+| Storage | ❌ No | ✅ Yes (14 days) |
+| Use case | Fan-out | Decouple workloads |
+
+> 💡 **Fan-out pattern:** SNS → multiple SQS queues, each processed independently.
+
+---
+
+## 13. CloudFront 101
+
+AWS's **CDN** — caches content at **400+ Edge Locations** close to users.
+
+```
+User → Edge Location (cache) → Origin (S3 / ALB / EC2)
+         ↑ serves from cache      ↑ only on cache miss
+```
+
+- Reduces latency by serving from nearest edge
+- Supports static (S3) and dynamic (ALB/EC2) origins
+- Built-in **DDoS protection** (Shield Standard — free)
+
+---
+
+## 14. Route 53 101
+
+AWS's **managed DNS service** — 3 functions:
+
+1. **Register domain names** → buy yoursite.com
+2. **DNS service** → map name to IP
+3. **Health checks** → monitor resource availability
+
+### Hosted Zones
+
+| Zone | Resolves For |
+|---|---|
+| **Public** | Internet-facing traffic |
+| **Private** | Traffic inside your VPC only |
+
+---
+
+## 15. RDS 101
+
+**Fully managed relational DB** — AWS handles patching, backups, replication, scaling.
+
+**Supported engines:** MySQL, PostgreSQL, MariaDB, Oracle, SQL Server, Aurora
+
+```
+✅ Lives inside your VPC (private subnets best practice)
+✅ Security Groups attachable
+✅ Encryption at rest (KMS) and in transit (SSL/TLS)
+❌ No OS/root access
+```
+
+### Deployment Modes
+
+| Mode | Description |
+|---|---|
+| Standalone | Single instance — dev/test |
+| Multi-AZ | Primary + standby + auto failover — production HA |
+| Read Replicas | Primary + read replicas — read-heavy workloads |
+
+### OLTP vs OLAP
+
+| | OLTP | OLAP |
+|---|---|---|
+| Purpose | Day-to-day transactions | Analytics & reporting |
+| Query type | Simple, fast | Complex, slow |
+| Data | Current | Historical |
+| AWS Service | **RDS / Aurora** | **Amazon Redshift** |
+| Examples | Orders, logins, ATM | Sales reports, revenue forecasts |
+
+> ⚠️ "data warehouse / analytics / BI" → **Redshift**. "application DB / transactions" → **RDS**.
+
+---
+
+## 16. AWS Market Advantages (6 Cloud Advantages)
+
+| # | Advantage | Meaning |
+|---|---|---|
+| 1 | Trade CAPEX for OPEX | No upfront hardware — pay as you use |
+| 2 | Massive Economies of Scale | AWS scale → lower costs for you |
+| 3 | Stop Guessing Capacity | Scale on demand |
+| 4 | Increased Speed & Agility | Deploy in minutes not months |
+| 5 | Stop Spending on Data Centers | Focus on app not infrastructure |
+| 6 | Go Global in Minutes | Deploy to any region instantly |
+
+---
+
+## Exam Traps Quick Reference
 
 | Trap | Correct Answer |
 |---|---|
-| Subnet is still private even with IGW attached | Route table must ALSO point `0.0.0.0/0 → IGW` |
-| NACL allows inbound but traffic drops | Must also allow outbound ephemeral ports 1024–65535 |
-| Only one of these per VPC | IGW, VGW |
-| NAT GW fails for other AZ instances | Need one NAT GW **per AZ** |
-| Direct Connect is secure? | Private yes, but **not encrypted** — add VPN for encryption |
-| Access private EC2 without port 22 open | SSM Session Manager |
-| Hardcoded access keys leaked | Use IAM roles instead — temporary credentials only |
-
----
-
-*AWS Solutions Architect Associate — DolfinED Course | Section 1 Notes*
+| Subnet private even with IGW | Route table must ALSO have `0.0.0.0/0 → IGW` |
+| NACL inbound ok but traffic drops | Add outbound ephemeral ports 1024–65535 |
+| Block a specific IP | NACL DENY rule (SG can't deny) |
+| Only one per VPC | IGW, VGW |
+| Direct Connect = encrypted? | Private yes, **NOT encrypted** — add VPN for encryption |
+| Access private EC2 no port 22 | SSM Session Manager |
+| Hardcoded access keys leaked | Use IAM Roles (temporary credentials) |
+| Analytics/reporting DB | Redshift (OLAP), not RDS |
+| Move EBS to another AZ | Snapshot → restore in new AZ |
+| SNS vs SQS receivers | SNS = many (fan-out), SQS = one at a time |

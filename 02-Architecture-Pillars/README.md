@@ -1,6 +1,6 @@
-# AWS SAA-C03 Notes — PDF 2 Section 1: Key Architecture Pillars
+# AWS SAA-C03 Notes — Architecture Pillars
 
-This section covers the core architecture ideas introduced at the start of PDF 2: elasticity, scalability, high availability, fault tolerance, reliability, resiliency, CloudWatch, CloudTrail, monolithic vs. microservices design, disaster recovery, and the AWS Shared Responsibility Model. The sequence and definitions below follow the section outline and topic order shown in the course PDF.[cite:1]
+This section covers the core architecture ideas : elasticity, scalability, high availability, fault tolerance, reliability, resiliency, CloudWatch, CloudTrail, monolithic vs. microservices design, disaster recovery, and the AWS Shared Responsibility Model.[cite:1]
 
 ## Section scope
 
